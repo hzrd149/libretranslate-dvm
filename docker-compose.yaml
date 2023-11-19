@@ -1,0 +1,22 @@
+version: "3"
+
+services:
+  dvm:
+    build: .
+    image: ghcr.io/hzrd149/libretranslate-dvm
+    depends_on:
+      - libretranslate
+    environment:
+      LIBRETRANSLATE_API: http://libretranslate:5000
+      LIBRETRANSLATE_KEY: ""
+      NOSTR_PRIVATE_KEY: "<hex key>"
+      NOSTR_RELAYS: "<relay url>,<relay url>"
+      NODE_ENV: development
+    volumes:
+      - ./data:/data
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "./venv/bin/python scripts/healthcheck.py"]
