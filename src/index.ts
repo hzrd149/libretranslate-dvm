@@ -41,16 +41,19 @@ async function shouldAcceptJob(request: Event<5002>): Promise<JobContext> {
 async function doWork(context: JobContext) {
   appDebug(`Starting work for ${context.request.id}`);
 
-  const tokens = new Map<number, string>();
-  const stripped = context.input;
+  const tokens = new Map<string, string>();
+  let stripped = context.input;
 
-  createTokens(stripped, getMatchNostrLink(), tokens, 100);
-  createTokens(stripped, getMatchLink(), tokens, 200);
-  createTokens(stripped, getMatchHashtag(), tokens, 300);
-  createTokens(stripped, getMatchEmoji(), tokens, 400);
-  createTokens(stripped, getMatchCashu(), tokens, 500);
+  stripped = createTokens(stripped, getMatchNostrLink(), tokens, 100);
+  stripped = createTokens(stripped, getMatchLink(), tokens, 200);
+  stripped = createTokens(stripped, getMatchHashtag(), tokens, 300);
+  stripped = createTokens(stripped, getMatchEmoji(), tokens, 400);
+  stripped = createTokens(stripped, getMatchCashu(), tokens, 500);
 
-  console.log(stripped, tokens);
+  console.log('----')
+  console.log(stripped);
+  console.log('----')
+  console.log(tokens);
 
   const output = await fetch(new URL("/translate", LIBRETRANSLATE_API), {
     method: "POST",
