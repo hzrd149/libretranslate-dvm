@@ -4,6 +4,7 @@ services:
   dvm:
     build: .
     image: ghcr.io/hzrd149/libretranslate-dvm
+    restart: unless-stopped
     depends_on:
       - libretranslate
     environment:
@@ -16,6 +17,9 @@ services:
       - ./data:/data
   libretranslate:
     image: libretranslate/libretranslate:latest
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
     ports:
       - "5000:5000"
     healthcheck:

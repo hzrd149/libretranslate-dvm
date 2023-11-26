@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import dayjs from "dayjs";
 import { DMV_TRANSLATE_REQUEST_KIND, DMV_TRANSLATE_RESULT_KIND } from "./const.js";
-import { RELAYS, pool } from "./pool.js";
+import { RELAYS, ensureConnection, pool } from "./pool.js";
 import { Event, finishEvent } from "nostr-tools";
 import { getInput, getInputParam, getInputTag, getOutputType, getRelays } from "./helpers/dvm.js";
 import { appDebug } from "./debug.js";
@@ -49,11 +49,6 @@ async function doWork(context: JobContext) {
   stripped = createTokens(stripped, getMatchHashtag(), tokens, 300);
   stripped = createTokens(stripped, getMatchEmoji(), tokens, 400);
   stripped = createTokens(stripped, getMatchCashu(), tokens, 500);
-
-  console.log('----')
-  console.log(stripped);
-  console.log('----')
-  console.log(tokens);
 
   const output = await fetch(new URL("/translate", LIBRETRANSLATE_API), {
     method: "POST",
@@ -115,6 +110,8 @@ jobsSub.on("event", async (event) => {
     }
   }
 });
+
+setInterval(ensureConnection, 1000 * 30);
 
 async function shutdown() {
   process.exit();

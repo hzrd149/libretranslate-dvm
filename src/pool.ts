@@ -11,11 +11,10 @@ const log = appDebug.extend("pool");
 export const pool = new SimplePool();
 export const RELAYS = NOSTR_RELAYS?.split(",") ?? [];
 
-async function ensureConnection() {
-  for (const url of RELAYS) {
-    await pool.ensureRelay(url);
-    log(`Connected to ${url}`);
-  }
+export function ensureConnection() {
+  return Promise.all(
+    RELAYS.map((url) => {
+      return pool.ensureRelay(url);
+    }),
+  );
 }
-
-await ensureConnection();
