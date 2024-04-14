@@ -5,6 +5,8 @@
     "moduleResolution": "NodeNext",
     "module": "NodeNext",
     "outDir": "build",
-    "removeComments": false
+    "removeComments": false,
+    "skipLibCheck": true,
+    "strict": true
   }
 }

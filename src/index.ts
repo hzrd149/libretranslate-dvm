@@ -1,26 +1,27 @@
 #!/usr/bin/env node
 import dayjs from "dayjs";
+import { Event, NostrEvent, Subscription, Filter, finalizeEvent } from "nostr-tools";
+
+import { LIBRETRANSLATE_API, LIBRETRANSLATE_KEY, NOSTR_PRIVATE_KEY, NOSTR_RELAYS } from "./env.js";
 import { DMV_TRANSLATE_REQUEST_KIND, DMV_TRANSLATE_RESULT_KIND } from "./const.js";
-import { RELAYS, ensureConnection, pool } from "./pool.js";
-import { Event, finishEvent } from "nostr-tools";
 import { getInput, getInputParam, getInputTag, getOutputType, getRelays } from "./helpers/dvm.js";
-import { appDebug } from "./debug.js";
-import { LIBRETRANSLATE_API, LIBRETRANSLATE_KEY, NOSTR_PRIVATE_KEY } from "./env.js";
-import { unique } from "./helpers/array.js";
 import { createTokens, replaceTokens } from "./helpers/tokens.js";
 import { getMatchCashu, getMatchEmoji, getMatchHashtag, getMatchLink, getMatchNostrLink } from "./helpers/regexp.js";
+import { unique } from "./helpers/array.js";
+import { pool } from "./pool.js";
+import { logger } from "./debug.js";
 
 const supportedLanguages = await fetch(new URL("/languages", LIBRETRANSLATE_API)).then(
   (res) => res.json() as Promise<{ code: string; name: string; targets: string[] }[]>,
 );
 
 type JobContext = {
-  request: Event<number>;
+  request: NostrEvent;
   input: string;
   lang: string;
 };
 
-async function shouldAcceptJob(request: Event<5002>): Promise<JobContext> {
+async function shouldAcceptJob(request: NostrEvent): Promise<JobContext> {
   const input = getInput(request);
   const output = getOutputType(request);
   const lang = getInputParam(request, "language");
@@ -32,14 +33,14 @@ async function shouldAcceptJob(request: Event<5002>): Promise<JobContext> {
   if (input.type === "text") {
     return { input: input.value, request, lang };
   } else if (input.type === "event") {
-    const event = await pool.get(input.relay ? [...RELAYS, input.relay] : RELAYS, { ids: [input.value] });
+    const event = await pool.get(input.relay ? [...NOSTR_RELAYS, input.relay] : NOSTR_RELAYS, { ids: [input.value] });
     if (!event) throw new Error("Failed to fetch event");
     return { input: event.content, request, lang };
   } else throw new Error(`Unknown input type ${input.type}`);
 }
 
 async function doWork(context: JobContext) {
-  appDebug(`Starting work for ${context.request.id}`);
+  logger(`Starting work for ${context.request.id}`);
 
   const tokens = new Map<string, string>();
   let stripped = context.input;
@@ -69,7 +70,7 @@ async function doWork(context: JobContext) {
 
   const repaired = replaceTokens(output.translatedText, tokens);
 
-  const result = finishEvent(
+  const result = finalizeEvent(
     {
       kind: DMV_TRANSLATE_RESULT_KIND,
       tags: [
@@ -84,14 +85,13 @@ async function doWork(context: JobContext) {
     NOSTR_PRIVATE_KEY,
   );
 
-  appDebug(`Finished work for ${context.request.id}`);
+  logger(`Finished work for ${context.request.id}`);
   await Promise.all(
-    pool.publish(unique([...getRelays(context.request), ...RELAYS]), result).map((p) => p.catch((e) => {})),
+    pool.publish(unique([...getRelays(context.request), ...NOSTR_RELAYS]), result).map((p) => p.catch((e) => {})),
   );
 }
 
-const jobsSub = pool.sub(RELAYS, [{ kinds: [DMV_TRANSLATE_REQUEST_KIND], since: dayjs().unix() }]);
-jobsSub.on("event", async (event) => {
+async function handleEvent(event: NostrEvent) {
   if (event.kind === DMV_TRANSLATE_REQUEST_KIND) {
     try {
       const context = await shouldAcceptJob(event);
@@ -99,19 +99,44 @@ jobsSub.on("event", async (event) => {
         await doWork(context);
       } catch (e) {
         if (e instanceof Error) {
-          appDebug(`Failed to process request ${event.id} because`, e.message);
+          logger(`Failed to process request ${event.id} because`, e.message);
           console.log(e);
         }
       }
     } catch (e) {
       if (e instanceof Error) {
-        appDebug(`Skipped request ${event.id} because`, e.message);
+        logger(`Skipped request ${event.id} because`, e.message);
       }
     }
   }
-});
+}
 
-setInterval(ensureConnection, 1000 * 30);
+const subscriptions = new Map<string, Subscription>();
+
+const filters: Filter[] = [{ kinds: [DMV_TRANSLATE_REQUEST_KIND], since: dayjs().unix() }];
+async function ensureSubscriptions() {
+  for (const url of NOSTR_RELAYS) {
+    const existing = subscriptions.get(url);
+
+    if (!existing || existing.closed) {
+      subscriptions.delete(url);
+      const relay = await pool.ensureRelay(url);
+      const sub = relay.subscribe(filters, {
+        onevent: handleEvent,
+        onclose: () => {
+          logger("Subscription to", url, "closed");
+          if (subscriptions.get(url) === sub) subscriptions.delete(url);
+        },
+      });
+
+      logger("Subscribed to", url);
+      subscriptions.set(url, sub);
+    }
+  }
+}
+
+await ensureSubscriptions();
+setInterval(ensureSubscriptions, 30_000);
 
 async function shutdown() {
   process.exit();

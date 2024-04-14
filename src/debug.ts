@@ -1,4 +1,4 @@
 import debug from "debug";
 
-export const appDebug = debug("dvm");
+export const logger = debug("dvm");
 debug.enable("dvm,dvm:*");

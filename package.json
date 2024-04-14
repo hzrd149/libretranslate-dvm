@@ -1,6 +1,6 @@
 {
   "name": "libretranslate-dvm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "main": "./build/index.js",
   "typings": "./build/index.d.ts",
@@ -20,21 +20,23 @@
     "support": "npx @getalby/pkgzap-cli"
   },
   "dependencies": {
+    "@noble/hashes": "^1.4.0",
     "dayjs": "^1.11.10",
     "debug": "^4.3.4",
-    "dotenv": "^16.3.1",
-    "lowdb": "^6.1.1",
-    "nanoid": "^5.0.3",
-    "nostr-tools": "^1.17.0",
-    "ws": "^8.14.2"
+    "dotenv": "^16.4.5",
+    "lowdb": "^7.0.1",
+    "nanoid": "^5.0.7",
+    "nostr-tools": "^2.5.0",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",
-    "@types/node": "^20.9.2",
-    "nodemon": "^3.0.1",
-    "prettier": "^3.1.0",
+    "@types/node": "^20.12.7",
+    "@types/ws": "^8.5.10",
+    "nodemon": "^3.1.0",
+    "prettier": "^3.2.5",
     "shelljs": "^0.8.5",
-    "typescript": "^5.0.4"
+    "typescript": "^5.4.5"
   },
   "funding": {
     "type": "lightning",

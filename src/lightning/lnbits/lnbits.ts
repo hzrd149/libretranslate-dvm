@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { InvoiceStatus, LightningBackend } from "../type.js";
-import { appDebug } from "../../debug.js";
+import { logger } from "../../debug.js";
 
 export default class LNBitsBackend implements LightningBackend {
   url: string;
@@ -11,7 +11,7 @@ export default class LNBitsBackend implements LightningBackend {
     this.adminKey = adminKey;
   }
 
-  private log = appDebug.extend("lnbits");
+  private log = logger.extend("lnbits");
   private request<T = any>(url: string, opts?: RequestInit) {
     return fetch(new URL(url, this.url), {
       ...opts,

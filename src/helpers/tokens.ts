@@ -1,7 +1,7 @@
 export function createTokens(str: string, regexp: RegExp, tokens: Map<string, string>, start: number = 0) {
   let idx = 1;
   let modified = str;
-  let match: RegExpMatchArray;
+  let match: RegExpMatchArray | null;
   while ((match = modified.match(regexp))) {
     if (match.index === undefined) break;
     const id = start + "/" + idx++;
