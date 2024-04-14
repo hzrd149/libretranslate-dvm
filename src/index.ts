@@ -91,9 +91,11 @@ async function doWork(context: JobContext) {
   );
 }
 
+const seen = new Set<string>();
 async function handleEvent(event: NostrEvent) {
-  if (event.kind === DMV_TRANSLATE_REQUEST_KIND) {
+  if (event.kind === DMV_TRANSLATE_REQUEST_KIND && !seen.has(event.id)) {
     try {
+      seen.add(event.id);
       const context = await shouldAcceptJob(event);
       try {
         await doWork(context);
