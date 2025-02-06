@@ -4,7 +4,7 @@ import { NostrEvent } from "nostr-tools";
 
 import { LIBRETRANSLATE_API, LIBRETRANSLATE_KEY, NOSTR_RELAYS } from "./env.js";
 import { logger } from "./debug.js";
-import { getInput, getInputParam, getOutputType } from "./helpers/dvm.js";
+import { getInput, getInputParam, getOutputType, getRelays } from "./helpers/dvm.js";
 import { createTokens, replaceTokens } from "./helpers/tokens.js";
 import { getMatchCashu, getMatchEmoji, getMatchHashtag, getMatchLink, getMatchNostrLink } from "./helpers/regexp.js";
 import { eventLoader, eventStore, factory } from "./core.js";
@@ -38,8 +38,14 @@ async function* executeJob(request: NostrEvent) {
   } else if (input.type === "event") {
     if (!isHex(input.value)) throw new Error("Event input is not a hex string");
 
+    const relays = [...NOSTR_RELAYS, input.relay, ...getRelays(request)].filter(Boolean);
+    log(`Fetching event from ${relays.length} relays`);
+
     // request event
-    eventLoader.next({ id: input.value, relays: input.relay ? [...NOSTR_RELAYS, input.relay] : NOSTR_RELAYS });
+    eventLoader.next({
+      id: input.value,
+      relays,
+    });
 
     // send status update
     yield await factory.create(MachineStatus, request, "Fetching event...", "processing");
