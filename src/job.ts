@@ -38,23 +38,31 @@ async function* executeJob(request: NostrEvent) {
   } else if (input.type === "event") {
     if (!isHex(input.value)) throw new Error("Event input is not a hex string");
 
-    const relays = [...NOSTR_RELAYS, input.relay, ...getRelays(request)].filter(Boolean);
-    log(`Fetching event from ${relays.length} relays`);
+    if (eventStore.hasEvent(input.value)) {
+      log(`Found event ${input.value.slice(0, 10)}`);
 
-    // request event
-    eventLoader.next({
-      id: input.value,
-      relays,
-    });
+      const event = eventStore.getEvent(input.value)!;
+      inputContent = event.content;
+    } else {
+      const relays = [...NOSTR_RELAYS, input.relay, ...getRelays(request)].filter(Boolean);
+      log(`Requesting event from ${relays.length} relays`);
 
-    // send status update
-    yield await factory.create(MachineStatus, request, "Fetching event...", "processing");
+      // request event
+      eventLoader.next({
+        id: input.value,
+        relays,
+      });
 
-    // wait for the event to load
-    const event = await firstValueFrom(eventStore.event(input.value));
-    if (!event) throw new Error("Failed to fetch event");
+      // send status update
+      yield await factory.create(MachineStatus, request, "Fetching event...", "processing");
 
-    inputContent = event.content;
+      // wait for the event to load
+      const event = await firstValueFrom(eventStore.event(input.value));
+      if (!event) throw new Error("Failed to fetch event");
+
+      log(`Found event ${input.value.slice(0, 10)}`);
+      inputContent = event.content;
+    }
   } else {
     throw new Error(`Unknown input type ${input.type}`);
   }

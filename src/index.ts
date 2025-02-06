@@ -38,7 +38,7 @@ const subscription = rxNostr
   )
   .subscribe((packet) => {
     if (packet.ok) {
-      logger(`Published ${packet.eventId} to ${packet.from}`);
+      logger(`Published ${packet.eventId.slice(0, 10)} to ${packet.from}`);
     }
   });
 

@@ -36,6 +36,7 @@ setTimeout(() => {
 export const eventLoader = new SingleEventLoader(rxNostr);
 
 const subscription = eventLoader.subscribe((packet) => {
+  log(`Got event ${packet.event.id.slice(0, 10)}`);
   eventStore.add(packet.event, packet.from);
 });
 
